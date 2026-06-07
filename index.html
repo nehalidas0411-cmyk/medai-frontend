@@ -448,12 +448,26 @@ async function analyzeReport(){
 }
 function showResults(data){
   const el=document.getElementById('result-section');el.style.display='block';
-  const findings=Array.isArray(data.findings)?data.findings:(data.findings||'').split('\n').filter(Boolean);
-  el.innerHTML=`<div class="result-header"><h2>Analysis Complete</h2><p>AI interpretation of your medical report</p><span class="result-badge">⚕ AI-generated — not a medical diagnosis</span></div>
+  const findings=Array.isArray(data.findings)?data.findings:[];
+  const diagnoses=Array.isArray(data.diagnosis)?data.diagnosis:[];
+  const findingsHtml=findings.length
+    ? findings.map(f=>{
+        const statusColor=f.status==='abnormal'?'#C0392B':f.status==='borderline'?'#D4820A':'#2D5A4E';
+        const statusBg=f.status==='abnormal'?'#FDECEA':f.status==='borderline'?'#FDF6E9':'#E8F2EF';
+        return `<li class="finding-item"><div class="finding-bullet"></div><span><strong>${f.item||''}</strong>${f.value?' — '+f.value:''} <span style="background:${statusBg};color:${statusColor};padding:1px 7px;border-radius:10px;font-size:11px;font-weight:500">${f.status||''}</span>${f.note?'<br><span style="font-size:12px;color:var(--muted)">'+f.note+'</span>':''}</span></li>`;
+      }).join('')
+    : '<li class="finding-item"><div class="finding-bullet"></div><span>No specific findings extracted.</span></li>';
+  const diagHtml=diagnoses.length
+    ? diagnoses.map(d=>`<div class="diag-row"><div><div class="diag-name">${d.condition||''}</div><div class="diag-explain">${d.explanation||''}</div></div><span class="likelihood-badge ${getLikelihoodClass(d.likelihood)}">${d.likelihood||''}</span></div>`).join('')
+    : `<div class="diag-row"><div class="diag-name">${data.diagnosis||'Could not determine.'}</div></div>`;
+  const urgencyColor=data.urgency==='emergency'?'#C0392B':data.urgency==='urgent'?'#D4820A':data.urgency==='soon'?'#1E5F8A':'#2D5A4E';
+  el.innerHTML=`<div class="result-header"><h2>Analysis Complete</h2><p>${data.report_type||'Medical Report'} · <span style="text-transform:capitalize">${data.urgency||'routine'}</span></p><span class="result-badge">⚕ AI-generated — not a medical diagnosis</span></div>
   <div class="card"><div class="section-label">Plain-language explanation</div><p class="explanation-text">${data.explanation||'No explanation available.'}</p></div>
-  <div class="card"><div class="section-label">Key findings</div><ul class="findings-list">${findings.map(f=>`<li class="finding-item"><div class="finding-bullet"></div><span>${f}</span></li>`).join('')}</ul></div>
-  <div class="card"><div class="section-label">Possible diagnosis / differential</div><div class="diagnosis-card">${data.diagnosis||data.possible_diagnosis||'Could not determine.'}</div></div>
-  <div class="card"><div class="section-label">Recommendation</div><div class="rec-card">${data.recommendation||'Please consult a doctor.'}</div><div class="result-disclaimer">⚠ This analysis is AI-generated for educational purposes only. It does not constitute medical advice, diagnosis, or treatment. Always seek the advice of a qualified physician.</div></div>
+  <div class="card"><div class="section-label">Key findings</div><ul class="findings-list">${findingsHtml}</ul></div>
+  <div class="card"><div class="section-label">Possible diagnosis / differential</div><div class="diagnosis-result">${diagHtml}</div></div>
+  <div class="card"><div class="section-label">Recommendation</div><div class="rec-card">${data.recommendation||'Please consult a doctor.'}</div>
+  <div style="margin-top:8px;font-size:12px;font-weight:500;color:${urgencyColor}">Urgency: ${(data.urgency||'routine').toUpperCase()}</div>
+  <div class="result-disclaimer">⚠ This analysis is AI-generated for educational purposes only. It does not constitute medical advice, diagnosis, or treatment. Always seek the advice of a qualified physician.</div></div>
   <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn-new" onclick="resetUpload()">⬆ Analyze Another Report</button><button class="btn-outline" onclick="showPage('nearby')">📍 Find Nearby Facilities</button><button class="btn-outline" onclick="reportProblem()">🚩 Report a Problem</button></div>`;
 }
 function resetUpload(){document.getElementById('result-section').style.display='none';document.getElementById('upload-section').style.display='block';clearFile();document.getElementById('uploadError').style.display='none'}
